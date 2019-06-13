@@ -9,6 +9,7 @@ export const UserMoviesContext = React.createContext(
 
 type UserMoviesContextProps = {
   data: UserMovies;
+  setData: React.Dispatch<React.SetStateAction<UserMovies>>;
   loading: boolean;
 };
 
@@ -92,6 +93,7 @@ function UserMoviesProvider(props: { children: React.ReactNode }) {
 
   const value = {
     data,
+    setData,
     loading
   };
 

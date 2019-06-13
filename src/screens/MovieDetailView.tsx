@@ -52,6 +52,8 @@ type DataToBeUploaded = {
 };
 
 function addMovieToFirebaseList(
+  movies: UserMovies,
+  setData: React.Dispatch<React.SetStateAction<UserMovies>>,
   userId: string,
   data: DataToBeUploaded,
   setLoadingButton: Function
@@ -64,27 +66,42 @@ function addMovieToFirebaseList(
     try {
       // const {id, ...rest} = data;
       const userDoc = await transaction.get(userRef);
-
+      let moviesCount = 0;
+      let totalRuntime = 0;
+      let fId;
       if (!userDoc.exists) {
+        moviesCount = 1;
+        totalRuntime = data.runtime;
         await userRef.set({ totalRuntime: data.runtime, moviesCount: 1 });
 
-        await userRef.collection("movies").add(data);
-        setLoadingButton(false);
+        const docRef = await userRef.collection("movies").add(data);
+        fId = docRef.id;
       } else {
         const userDocData = userDoc.data();
         if (userDocData) {
-          const totalRuntime = (userDocData.totalRuntime += data.runtime);
-          const moviesCount = userDocData.moviesCount + 1;
-
-          await userRef.collection("movies").add(data);
+          totalRuntime = userDocData.totalRuntime += data.runtime;
+          moviesCount = userDocData.moviesCount + 1;
 
           transaction.update(userRef, { totalRuntime, moviesCount });
-          setLoadingButton(false);
+
+          const docRef = await userRef.collection("movies").add(data);
+          fId = docRef.id;
         } else {
+          fId = "w";
           console.log("not foud user doc data");
-          setLoadingButton(false);
         }
       }
+      setData({
+        listOfMovies: [
+          ...movies.listOfMovies,
+          { fId, title: data.title, id: data.id }
+        ],
+        moviesCount: moviesCount,
+        totalRuntime: totalRuntime
+      });
+      setLoadingButton(false);
+      // movies: UserMovies,
+      // setData: React.Dispatch<React.SetStateAction<UserMovies>>,
     } catch (err) {
       console.log({ err });
     }
@@ -92,6 +109,8 @@ function addMovieToFirebaseList(
 }
 
 function removeMovieToFirebaseList(
+  movies: UserMovies,
+  setData: React.Dispatch<React.SetStateAction<UserMovies>>,
   userId: string,
   movieFid: string,
   data: DataToBeUploaded,
@@ -119,7 +138,20 @@ function removeMovieToFirebaseList(
             .doc(movieFid)
             .delete();
 
+          const indexToRemove = movies.listOfMovies.findIndex(
+            ({ fId }) => fId === movieFid
+          );
+
+          movies.listOfMovies.splice(indexToRemove, 1);
+
           transaction.update(userRef, { totalRuntime, moviesCount });
+
+          setData({
+            listOfMovies: [...movies.listOfMovies],
+            moviesCount: moviesCount,
+            totalRuntime: totalRuntime
+          });
+
           setLoadingButton(false);
         } else {
           console.log("not foud user doc data");
@@ -152,7 +184,7 @@ const App = (props: RouteComponentProps<Params>) => {
     getMovie(setMovieData, props.match.params.id, setLoading);
   }, [movieData.title]);
 
-  console.log(userMovies.data);
+  // console.log(userMovies.data);
 
   const data = [
     {
@@ -230,6 +262,8 @@ const App = (props: RouteComponentProps<Params>) => {
                           movieData.id
                         );
                         removeMovieToFirebaseList(
+                          userMovies.data,
+                          userMovies.setData,
                           user.id,
                           fId,
                           {
@@ -241,6 +275,8 @@ const App = (props: RouteComponentProps<Params>) => {
                         );
                       } else {
                         addMovieToFirebaseList(
+                          userMovies.data,
+                          userMovies.setData,
                           user.id,
                           {
                             title: movieData.title,
