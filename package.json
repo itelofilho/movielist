@@ -26,7 +26,7 @@
     "typescript": "^3.2.4",
     "use-debounce": "^0.0.7",
     "use-throttle": "^0.0.3",
-    "yarn": "^1.13.0"
+    "yarn": "^1.17.3"
   },
   "scripts": {
     "start": "react-scripts start",
